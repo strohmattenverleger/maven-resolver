@@ -31,6 +31,7 @@ import org.eclipse.aether.collection.DependencyCollectionContext;
 import org.eclipse.aether.collection.DependencyManagement;
 import org.eclipse.aether.collection.DependencyManager;
 import org.eclipse.aether.graph.Dependency;
+import org.eclipse.aether.graph.DependencyOverride;
 import org.eclipse.aether.graph.Exclusion;
 import org.eclipse.aether.util.artifact.JavaScopes;
 
@@ -55,6 +56,8 @@ public final class ClassicDependencyManager
 
     private final Map<Object, Collection<Exclusion>> managedExclusions;
 
+    private final Map<Object, Artifact> managedOverrides;
+
     private int hashCode;
 
     /**
@@ -64,13 +67,14 @@ public final class ClassicDependencyManager
     {
         this( 0, Collections.<Object, String>emptyMap(), Collections.<Object, String>emptyMap(),
               Collections.<Object, Boolean>emptyMap(), Collections.<Object, String>emptyMap(),
-              Collections.<Object, Collection<Exclusion>>emptyMap() );
+              Collections.<Object, Collection<Exclusion>>emptyMap(), Collections.<Object, Artifact>emptyMap() );
     }
 
     private ClassicDependencyManager( int depth, Map<Object, String> managedVersions,
                                       Map<Object, String> managedScopes, Map<Object, Boolean> managedOptionals,
                                       Map<Object, String> managedLocalPaths,
-                                      Map<Object, Collection<Exclusion>> managedExclusions )
+                                      Map<Object, Collection<Exclusion>> managedExclusions,
+                                      Map<Object, Artifact> managedOverrides )
     {
         this.depth = depth;
         this.managedVersions = managedVersions;
@@ -78,26 +82,21 @@ public final class ClassicDependencyManager
         this.managedOptionals = managedOptionals;
         this.managedLocalPaths = managedLocalPaths;
         this.managedExclusions = managedExclusions;
+        this.managedOverrides = managedOverrides;
     }
 
     public DependencyManager deriveChildManager( DependencyCollectionContext context )
     {
         requireNonNull( context, "context cannot be null" );
-        if ( depth >= 2 )
-        {
-            return this;
-        }
-        else if ( depth == 1 )
-        {
-            return new ClassicDependencyManager( depth + 1, managedVersions, managedScopes, managedOptionals,
-                                                 managedLocalPaths, managedExclusions );
-        }
+        // Even for the ClassicDependencyManager it is safe to derive here straight forward. The depth of 2+ is handled
+        // in the manageDependency method so this does not break compatibility with Maven 2.x.
 
         Map<Object, String> managedVersions = this.managedVersions;
         Map<Object, String> managedScopes = this.managedScopes;
         Map<Object, Boolean> managedOptionals = this.managedOptionals;
         Map<Object, String> managedLocalPaths = this.managedLocalPaths;
         Map<Object, Collection<Exclusion>> managedExclusions = this.managedExclusions;
+        Map<Object, Artifact> managedOverrides = this.managedOverrides;
 
         for ( Dependency managedDependency : context.getManagedDependencies() )
         {
@@ -156,8 +155,21 @@ public final class ClassicDependencyManager
             }
         }
 
+        for ( DependencyOverride override : context.getDependencyOverrides() )
+        {
+            Object key = getKey( override.getOriginal() );
+            if ( !managedOverrides.containsKey( key ) )
+            {
+                if ( managedOverrides == this.managedOverrides )
+                {
+                    managedOverrides = new HashMap<>( this.managedOverrides );
+                }
+                managedOverrides.put( key, override.getOverride() );
+            }
+        }
+
         return new ClassicDependencyManager( depth + 1, managedVersions, managedScopes, managedOptionals,
-                                             managedLocalPaths, managedExclusions );
+                                             managedLocalPaths, managedExclusions, managedOverrides );
     }
 
     public DependencyManagement manageDependency( Dependency dependency )
@@ -167,12 +179,30 @@ public final class ClassicDependencyManager
 
         Object key = getKey( dependency.getArtifact() );
 
-        if ( depth >= 2 )
+        Artifact override = managedOverrides.get( key );
+        if ( override != null )
+        {
+            Object overrideKey = getKey( override );
+            if ( !key.equals( overrideKey ) )
+            {
+                /* If the keys match, someone is overriding an artifact with itself on some level and there is nothing
+                 * to do.
+                 */
+                management = new DependencyManagement();
+                management.setOverride( override );
+                key = overrideKey;
+            }
+        }
+
+        if ( depth >= 2 || override != null )
         {
             String version = managedVersions.get( key );
             if ( version != null )
             {
-                management = new DependencyManagement();
+                if ( management == null )
+                {
+                    management = new DependencyManagement();
+                }
                 management.setVersion( version );
             }
 

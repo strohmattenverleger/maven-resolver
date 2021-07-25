@@ -258,7 +258,7 @@ public class DfDependencyCollector
                             ArtifactDescriptorResult descriptorResult, DefaultDependencyNode child )
     {
         DefaultDependencyCollectionContext context = args.collectionContext;
-        context.set( d, descriptorResult.getManagedDependencies() );
+        context.set( d, descriptorResult.getManagedDependencies(), descriptorResult.getDependencyOverrides() );
 
         DependencySelector childSelector = depSelector != null ? depSelector.deriveChildSelector( context ) : null;
         DependencyManager childManager = depManager != null ? depManager.deriveChildManager( context ) : null;

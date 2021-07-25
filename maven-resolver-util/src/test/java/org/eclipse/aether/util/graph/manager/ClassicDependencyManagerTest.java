@@ -22,6 +22,8 @@ package org.eclipse.aether.util.graph.manager;
 import static org.junit.Assert.*;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
@@ -30,6 +32,7 @@ import org.eclipse.aether.collection.DependencyCollectionContext;
 import org.eclipse.aether.collection.DependencyManagement;
 import org.eclipse.aether.collection.DependencyManager;
 import org.eclipse.aether.graph.Dependency;
+import org.eclipse.aether.graph.DependencyOverride;
 import org.eclipse.aether.internal.test.util.TestUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,17 +48,49 @@ public class ClassicDependencyManagerTest
 
     private final Artifact B1 = new DefaultArtifact( "test", "b", "", "1" );
 
+    private final Artifact C = new DefaultArtifact( "test", "c", "", "" );
+
+    private final Artifact C1 = new DefaultArtifact( "test", "c", "", "1" );
+
     private RepositorySystemSession session;
+
+    private DependencyCollectionContext newContext()
+    {
+        return newContext( Collections.emptyList(), Collections.emptyList() );
+    }
 
     private DependencyCollectionContext newContext( Dependency... managedDependencies )
     {
-        return TestUtils.newCollectionContext( session, null, Arrays.asList( managedDependencies ) );
+        return newContext( Arrays.asList( managedDependencies ), Collections.emptyList() );
+    }
+
+    private DependencyCollectionContext newContext( List<Dependency> managedDependencies,
+                                                    List<DependencyOverride> dependencyOverrides )
+    {
+        return TestUtils.newCollectionContext( session, null, managedDependencies, dependencyOverrides );
     }
 
     @Before
     public void setUp()
     {
         session = TestUtils.newSession();
+    }
+
+    @Test
+    public void testDeriveDependencyOverrides()
+    {
+        DependencyManager manager = new ClassicDependencyManager();
+        manager = manager.deriveChildManager( newContext(
+                Arrays.asList( new Dependency( C1, null ) ),
+                Arrays.asList( new DependencyOverride( A, C ) )
+        ) );
+        manager = manager.deriveChildManager( newContext(
+                Arrays.asList( new Dependency( B1, null ) ),
+                Arrays.asList( new DependencyOverride( A, B ) )
+        ) );
+        DependencyManagement mngt = manager.manageDependency( new Dependency( A, null ) );
+        assertNotNull( mngt );
+        assertSame( C, mngt.getOverride() );
     }
 
     @Test
@@ -79,4 +114,22 @@ public class ClassicDependencyManagerTest
         assertEquals( Boolean.TRUE, mngt.getOptional() );
     }
 
+    @Test
+    public void testManageCoordinates()
+    {
+        DependencyManager manager = new ClassicDependencyManager();
+        manager = manager.deriveChildManager( newContext( new Dependency( A1, null ) ) );
+        DependencyManagement mngt = manager.manageDependency( new Dependency( A, null ) );
+        assertNull( mngt );
+
+        manager = new ClassicDependencyManager();
+        manager = manager.deriveChildManager( newContext(
+                Arrays.asList( new Dependency( B1, null ) ),
+                Arrays.asList( new DependencyOverride( A, B ) )
+        ) );
+        mngt = manager.manageDependency( new Dependency( A, null ) );
+        assertNotNull( mngt );
+        assertSame( B, mngt.getOverride() );
+        assertSame( B1.getVersion(), mngt.getVersion() );
+    }
 }

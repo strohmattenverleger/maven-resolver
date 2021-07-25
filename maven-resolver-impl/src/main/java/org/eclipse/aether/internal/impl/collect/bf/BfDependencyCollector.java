@@ -287,7 +287,8 @@ public class BfDependencyCollector
                             ArtifactDescriptorResult descriptorResult, DefaultDependencyNode child )
     {
         DefaultDependencyCollectionContext context = args.collectionContext;
-        context.set( parentContext.dependency, descriptorResult.getManagedDependencies() );
+        context.set( parentContext.dependency, descriptorResult.getManagedDependencies(),
+                     descriptorResult.getDependencyOverrides() );
 
         DependencySelector childSelector =
                 parentContext.depSelector != null ? parentContext.depSelector.deriveChildSelector( context ) : null;

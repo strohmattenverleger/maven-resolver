@@ -32,6 +32,7 @@ import org.eclipse.aether.collection.DependencyCollectionContext;
 import org.eclipse.aether.collection.DependencyManagement;
 import org.eclipse.aether.collection.DependencyManager;
 import org.eclipse.aether.graph.Dependency;
+import org.eclipse.aether.graph.DependencyOverride;
 import org.eclipse.aether.graph.Exclusion;
 import org.eclipse.aether.util.artifact.JavaScopes;
 
@@ -62,6 +63,8 @@ public final class DefaultDependencyManager
 
     private final Map<Object, Collection<Exclusion>> managedExclusions;
 
+    private final Map<Object, Artifact> managedOverrides;
+
     private int hashCode;
 
     /**
@@ -71,14 +74,15 @@ public final class DefaultDependencyManager
     {
         this( Collections.<Object, String>emptyMap(), Collections.<Object, String>emptyMap(),
               Collections.<Object, Boolean>emptyMap(), Collections.<Object, String>emptyMap(),
-              Collections.<Object, Collection<Exclusion>>emptyMap() );
+              Collections.<Object, Collection<Exclusion>>emptyMap(), Collections.<Object, Artifact>emptyMap() );
     }
 
     private DefaultDependencyManager( final Map<Object, String> managedVersions,
                                       final Map<Object, String> managedScopes,
                                       final Map<Object, Boolean> managedOptionals,
                                       final Map<Object, String> managedLocalPaths,
-                                      final Map<Object, Collection<Exclusion>> managedExclusions )
+                                      final Map<Object, Collection<Exclusion>> managedExclusions,
+                                      final Map<Object, Artifact> managedOverrides )
     {
         super();
         this.managedVersions = managedVersions;
@@ -86,6 +90,7 @@ public final class DefaultDependencyManager
         this.managedOptionals = managedOptionals;
         this.managedLocalPaths = managedLocalPaths;
         this.managedExclusions = managedExclusions;
+        this.managedOverrides = managedOverrides;
     }
 
     public DependencyManager deriveChildManager( final DependencyCollectionContext context )
@@ -96,6 +101,7 @@ public final class DefaultDependencyManager
         Map<Object, Boolean> optionals = this.managedOptionals;
         Map<Object, String> localPaths = this.managedLocalPaths;
         Map<Object, Collection<Exclusion>> exclusions = this.managedExclusions;
+        Map<Object, Artifact> overrides = this.managedOverrides;
 
         for ( Dependency managedDependency : context.getManagedDependencies() )
         {
@@ -153,7 +159,20 @@ public final class DefaultDependencyManager
             }
         }
 
-        return new DefaultDependencyManager( versions, scopes, optionals, localPaths, exclusions );
+        for ( DependencyOverride override : context.getDependencyOverrides() )
+        {
+            Object key = getKey( override.getOriginal() );
+            if ( !overrides.containsKey( key ) )
+            {
+                if ( overrides == this.managedOverrides )
+                {
+                    overrides = new HashMap<>( this.managedOverrides );
+                }
+                overrides.put( key, override.getOverride() );
+            }
+        }
+
+        return new DefaultDependencyManager( versions, scopes, optionals, localPaths, exclusions, overrides );
     }
 
     public DependencyManagement manageDependency( Dependency dependency )
@@ -163,10 +182,28 @@ public final class DefaultDependencyManager
 
         Object key = getKey( dependency.getArtifact() );
 
+        Artifact override = managedOverrides.get( key );
+        if ( override != null )
+        {
+            Object overrideKey = getKey( override );
+            if ( !key.equals( overrideKey ) )
+            {
+                /* If the keys match, someone is overriding an artifact with itself on some level and there is nothing
+                 * to do.
+                 */
+                management = new DependencyManagement();
+                management.setOverride( override );
+                key = overrideKey;
+            }
+        }
+
         String version = managedVersions.get( key );
         if ( version != null )
         {
-            management = new DependencyManagement();
+            if ( management == null )
+            {
+                management = new DependencyManagement();
+            }
             management.setVersion( version );
         }
 

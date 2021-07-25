@@ -22,6 +22,7 @@ package org.eclipse.aether.collection;
 import java.util.Collection;
 import java.util.Map;
 
+import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.graph.Exclusion;
 
 /**
@@ -31,6 +32,8 @@ import org.eclipse.aether.graph.Exclusion;
  */
 public final class DependencyManagement
 {
+
+    private Artifact override;
 
     private String version;
 
@@ -48,6 +51,28 @@ public final class DependencyManagement
     public DependencyManagement()
     {
         // enables default constructor
+    }
+
+    /**
+     * Gets the new override to apply to the dependency.
+     *
+     * @return The new override or {@code null} if the dependency is not overridden.
+     */
+    public Artifact getOverride()
+    {
+        return override;
+    }
+
+    /**
+     * Sets the new override to apply to the dependency.
+     *
+     * @param override The new override, may be {@code null} if the dependency is not overridden.
+     * @return This management update for chaining, never {@code null}.
+     */
+    public DependencyManagement setOverride( Artifact override )
+    {
+        this.override = override;
+        return this;
     }
 
     /**

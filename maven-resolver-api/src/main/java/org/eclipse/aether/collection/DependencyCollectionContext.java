@@ -24,6 +24,7 @@ import java.util.List;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.graph.Dependency;
+import org.eclipse.aether.graph.DependencyOverride;
 
 /**
  * A context used during dependency collection to update the dependency manager, selector and traverser.
@@ -72,4 +73,11 @@ public interface DependencyCollectionContext
      */
     List<Dependency> getManagedDependencies();
 
+    /**
+     * Gets the dependency override information that was contributed by the artifact descriptor of the current
+     * dependency.
+     *
+     * @return The dependency override information, never {@code null}.
+     */
+    List<DependencyOverride> getDependencyOverrides();
 }

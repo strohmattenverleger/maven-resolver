@@ -99,6 +99,16 @@ public class PremanagedDependency
 
         if ( depMngt != null )
         {
+            if ( depMngt.getOverride() != null )
+            {
+                // TODO Should we set a managed bit? Something like DependencyNode.MANAGED_COORDINATES?
+                // The properties carry information like adding the artifact to the build path, which is essential.
+                Artifact override = depMngt.getOverride().setProperties( dependency.getArtifact().getProperties() );
+                dependency = dependency.setArtifact( override );
+                // The old exclusions are obsolete, because they apply to another artifact/dependency.
+                // Also, we do this here to not set a management flag (see exclusions below).
+                dependency = dependency.setExclusions( Collections.emptySet() );
+            }
             if ( depMngt.getVersion() != null && !disableVersionManagement )
             {
                 Artifact artifact = dependency.getArtifact();

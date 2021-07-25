@@ -38,6 +38,7 @@ import org.eclipse.aether.collection.DependencyTraverser;
 import org.eclipse.aether.collection.VersionFilter;
 import org.eclipse.aether.graph.Dependency;
 import org.eclipse.aether.graph.DependencyNode;
+import org.eclipse.aether.graph.DependencyOverride;
 import org.eclipse.aether.repository.ArtifactRepository;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.ArtifactDescriptorException;
@@ -208,6 +209,8 @@ public final class DataPool
 
         final List<Dependency> managedDependencies;
 
+        final List<DependencyOverride> dependencyOverrides;
+
         GoodDescriptor( ArtifactDescriptorResult result )
         {
             artifact = result.getArtifact();
@@ -215,6 +218,7 @@ public final class DataPool
             aliases = result.getAliases();
             dependencies = result.getDependencies();
             managedDependencies = result.getManagedDependencies();
+            dependencyOverrides = result.getDependencyOverrides();
             repositories = result.getRepositories();
         }
 
@@ -226,6 +230,7 @@ public final class DataPool
             result.setAliases( aliases );
             result.setDependencies( dependencies );
             result.setManagedDependencies( managedDependencies );
+            result.setDependencyOverrides( dependencyOverrides );
             result.setRepositories( repositories );
             return result;
         }

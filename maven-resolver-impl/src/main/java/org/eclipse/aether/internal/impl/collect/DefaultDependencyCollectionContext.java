@@ -25,6 +25,7 @@ import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.collection.DependencyCollectionContext;
 import org.eclipse.aether.graph.Dependency;
+import org.eclipse.aether.graph.DependencyOverride;
 
 /**
  * Internal helper class for collector implementations.
@@ -41,13 +42,17 @@ public final class DefaultDependencyCollectionContext
 
     private List<Dependency> managedDependencies;
 
+    private List<DependencyOverride> dependencyOverrides;
+
     public DefaultDependencyCollectionContext( RepositorySystemSession session, Artifact artifact,
-                                               Dependency dependency, List<Dependency> managedDependencies )
+                                               Dependency dependency, List<Dependency> managedDependencies,
+                                               List<DependencyOverride> dependencyOverrides )
     {
         this.session = session;
         this.artifact = ( dependency != null ) ? dependency.getArtifact() : artifact;
         this.dependency = dependency;
         this.managedDependencies = managedDependencies;
+        this.dependencyOverrides = dependencyOverrides;
     }
 
     public RepositorySystemSession getSession()
@@ -70,11 +75,18 @@ public final class DefaultDependencyCollectionContext
         return managedDependencies;
     }
 
-    public void set( Dependency dependency, List<Dependency> managedDependencies )
+    public List<DependencyOverride> getDependencyOverrides()
+    {
+        return dependencyOverrides;
+    }
+
+    public void set( Dependency dependency, List<Dependency> managedDependencies,
+                     List<DependencyOverride> dependencyOverrides )
     {
         artifact = dependency.getArtifact();
         this.dependency = dependency;
         this.managedDependencies = managedDependencies;
+        this.dependencyOverrides = dependencyOverrides;
     }
 
     @Override

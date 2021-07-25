@@ -32,6 +32,7 @@ import org.eclipse.aether.collection.DependencyCollectionContext;
 import org.eclipse.aether.collection.DependencyManagement;
 import org.eclipse.aether.collection.DependencyManager;
 import org.eclipse.aether.graph.Dependency;
+import org.eclipse.aether.graph.DependencyOverride;
 import org.eclipse.aether.graph.Exclusion;
 import org.eclipse.aether.util.artifact.JavaScopes;
 
@@ -39,6 +40,9 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * A dependency manager managing transitive dependencies supporting transitive dependency management.
+ *
+ * TODO This {@link DependencyManager} is pretty much the same as {@link ClassicDependencyManager}.
+ * Does it need to exist or can it be removed as part of 2.0.0?
  *
  * @author Christian Schulte
  * @since 1.4.0
@@ -57,6 +61,8 @@ public final class TransitiveDependencyManager
 
     private final Map<Object, Collection<Exclusion>> managedExclusions;
 
+    private final Map<Object, Artifact> managedOverrides;
+
     private final int depth;
 
     private int hashCode;
@@ -68,7 +74,7 @@ public final class TransitiveDependencyManager
     {
         this( 0, Collections.<Object, String>emptyMap(), Collections.<Object, String>emptyMap(),
               Collections.<Object, Boolean>emptyMap(), Collections.<Object, String>emptyMap(),
-              Collections.<Object, Collection<Exclusion>>emptyMap() );
+              Collections.<Object, Collection<Exclusion>>emptyMap(), Collections.<Object, Artifact>emptyMap() );
     }
 
     private TransitiveDependencyManager( final int depth,
@@ -76,7 +82,8 @@ public final class TransitiveDependencyManager
                                          final Map<Object, String> managedScopes,
                                          final Map<Object, Boolean> managedOptionals,
                                          final Map<Object, String> managedLocalPaths,
-                                         final Map<Object, Collection<Exclusion>> managedExclusions )
+                                         final Map<Object, Collection<Exclusion>> managedExclusions,
+                                         final Map<Object, Artifact> managedOverrides )
     {
         super();
         this.depth = depth;
@@ -85,6 +92,7 @@ public final class TransitiveDependencyManager
         this.managedOptionals = managedOptionals;
         this.managedLocalPaths = managedLocalPaths;
         this.managedExclusions = managedExclusions;
+        this.managedOverrides = managedOverrides;
     }
 
     public DependencyManager deriveChildManager( final DependencyCollectionContext context )
@@ -95,6 +103,7 @@ public final class TransitiveDependencyManager
         Map<Object, Boolean> optionals = managedOptionals;
         Map<Object, String> localPaths = managedLocalPaths;
         Map<Object, Collection<Exclusion>> exclusions = managedExclusions;
+        Map<Object, Artifact> overrides = this.managedOverrides;
 
         for ( Dependency managedDependency : context.getManagedDependencies() )
         {
@@ -152,8 +161,21 @@ public final class TransitiveDependencyManager
             }
         }
 
+        for ( DependencyOverride override : context.getDependencyOverrides() )
+        {
+            Object key = getKey( override.getOriginal() );
+            if ( !overrides.containsKey( key ) )
+            {
+                if ( overrides == this.managedOverrides )
+                {
+                    overrides = new HashMap<>( this.managedOverrides );
+                }
+                overrides.put( key, override.getOverride() );
+            }
+        }
+
         return new TransitiveDependencyManager( depth + 1, versions, scopes, optionals, localPaths,
-                                                exclusions );
+                                                exclusions, overrides );
 
     }
 
@@ -164,12 +186,30 @@ public final class TransitiveDependencyManager
 
         Object key = getKey( dependency.getArtifact() );
 
-        if ( depth >= 2 )
+        Artifact override = managedOverrides.get( key );
+        if ( override != null )
+        {
+            Object overrideKey = getKey( override );
+            if ( !key.equals( overrideKey ) )
+            {
+                /* If the keys match, someone is overriding an artifact with itself on some level and there is nothing
+                 * to do.
+                 */
+                management = new DependencyManagement();
+                management.setOverride( override );
+                key = overrideKey;
+            }
+        }
+
+        if ( depth >= 2 || override != null )
         {
             String version = managedVersions.get( key );
             if ( version != null )
             {
-                management = new DependencyManagement();
+                if ( management == null )
+                {
+                    management = new DependencyManagement();
+                }
                 management.setVersion( version );
             }
 

@@ -42,6 +42,7 @@ import org.eclipse.aether.collection.VersionFilter;
 import org.eclipse.aether.graph.DefaultDependencyNode;
 import org.eclipse.aether.graph.Dependency;
 import org.eclipse.aether.graph.DependencyNode;
+import org.eclipse.aether.graph.DependencyOverride;
 import org.eclipse.aether.impl.ArtifactDescriptorReader;
 import org.eclipse.aether.impl.DependencyCollector;
 import org.eclipse.aether.impl.RemoteRepositoryManager;
@@ -153,6 +154,7 @@ public abstract class DependencyCollectorDelegate implements DependencyCollector
         List<RemoteRepository> repositories = request.getRepositories();
         List<Dependency> dependencies = request.getDependencies();
         List<Dependency> managedDependencies = request.getManagedDependencies();
+        List<DependencyOverride> dependencyOverrides = request.getDependencyOverrides();
 
         Map<String, Object> stats = new LinkedHashMap<>();
         long time1 = System.nanoTime();
@@ -213,6 +215,8 @@ public abstract class DependencyCollectorDelegate implements DependencyCollector
             }
             dependencies = mergeDeps( dependencies, descriptorResult.getDependencies() );
             managedDependencies = mergeDeps( managedDependencies, descriptorResult.getManagedDependencies() );
+            dependencyOverrides = mergeDependencyOverrides( dependencyOverrides,
+                                                            descriptorResult.getDependencyOverrides() );
 
             node = new DefaultDependencyNode( root );
             node.setRequestContext( request.getRequestContext() );
@@ -238,7 +242,7 @@ public abstract class DependencyCollectorDelegate implements DependencyCollector
             DataPool pool = new DataPool( session );
 
             DefaultDependencyCollectionContext context = new DefaultDependencyCollectionContext(
-                    session, request.getRootArtifact(), root, managedDependencies );
+                    session, request.getRootArtifact(), root, managedDependencies, dependencyOverrides );
 
             DefaultVersionFilterContext versionContext = new DefaultVersionFilterContext( session );
 
@@ -358,6 +362,39 @@ public abstract class DependencyCollectorDelegate implements DependencyCollector
                 if ( !ids.contains( getId( dependency.getArtifact() ) ) )
                 {
                     result.add( dependency );
+                }
+            }
+        }
+        return result;
+    }
+
+    private List<DependencyOverride> mergeDependencyOverrides( List<DependencyOverride> dominant,
+                                                               List<DependencyOverride> recessive )
+    {
+        List<DependencyOverride> result;
+        if ( dominant == null || dominant.isEmpty() )
+        {
+            result = recessive;
+        }
+        else if ( recessive == null || recessive.isEmpty() )
+        {
+            result = dominant;
+        }
+        else
+        {
+            int initialCapacity = dominant.size() + recessive.size();
+            result = new ArrayList<>( initialCapacity );
+            Collection<String> ids = new HashSet<>( initialCapacity, 1.0f );
+            for ( DependencyOverride override : dominant )
+            {
+                ids.add( getId( override.getOriginal() ) );
+                result.add( override );
+            }
+            for ( DependencyOverride override : recessive )
+            {
+                if ( !ids.contains( getId( override.getOriginal() ) ) )
+                {
+                    result.add( override );
                 }
             }
         }

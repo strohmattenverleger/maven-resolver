@@ -27,6 +27,7 @@ import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RequestTrace;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.graph.Dependency;
+import org.eclipse.aether.graph.DependencyOverride;
 import org.eclipse.aether.repository.RemoteRepository;
 
 /**
@@ -48,6 +49,8 @@ public final class CollectRequest
     private List<Dependency> dependencies = Collections.emptyList();
 
     private List<Dependency> managedDependencies = Collections.emptyList();
+
+    private List<DependencyOverride> dependencyOverrides = Collections.emptyList();
 
     private List<RemoteRepository> repositories = Collections.emptyList();
 
@@ -250,6 +253,37 @@ public final class CollectRequest
                 this.managedDependencies = new ArrayList<>();
             }
             this.managedDependencies.add( managedDependency );
+        }
+        return this;
+    }
+
+    public List<DependencyOverride> getDependencyOverrides()
+    {
+        return dependencyOverrides;
+    }
+
+    public CollectRequest setDependencyOverrides( List<DependencyOverride> dependencyOverrides )
+    {
+        if ( dependencyOverrides == null )
+        {
+            this.dependencyOverrides = Collections.emptyList();
+        }
+        else
+        {
+            this.dependencyOverrides = dependencyOverrides;
+        }
+        return this;
+    }
+
+    public CollectRequest addDependencyOverride( DependencyOverride dependencyOverride )
+    {
+        if ( dependencyOverride != null )
+        {
+            if ( this.dependencyOverrides.isEmpty() )
+            {
+                this.dependencyOverrides = new ArrayList<>();
+            }
+            this.dependencyOverrides.add( dependencyOverride );
         }
         return this;
     }

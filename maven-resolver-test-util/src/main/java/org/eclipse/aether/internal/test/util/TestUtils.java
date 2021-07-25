@@ -28,6 +28,7 @@ import org.eclipse.aether.collection.DependencyCollectionContext;
 import org.eclipse.aether.collection.DependencyGraphTransformationContext;
 import org.eclipse.aether.collection.VersionFilter;
 import org.eclipse.aether.graph.Dependency;
+import org.eclipse.aether.graph.DependencyOverride;
 import org.eclipse.aether.resolution.VersionRangeResult;
 
 /**
@@ -60,6 +61,15 @@ public class TestUtils
                                                                     List<Dependency> managedDependencies )
     {
         return new TestDependencyCollectionContext( session, null, dependency, managedDependencies );
+    }
+
+    public static DependencyCollectionContext newCollectionContext( RepositorySystemSession session,
+                                                                    Dependency dependency,
+                                                                    List<Dependency> managedDependencies,
+                                                                    List<DependencyOverride> dependencyOverrides )
+    {
+        return new TestDependencyCollectionContext( session, null, dependency, managedDependencies,
+                                                    dependencyOverrides );
     }
 
     /**

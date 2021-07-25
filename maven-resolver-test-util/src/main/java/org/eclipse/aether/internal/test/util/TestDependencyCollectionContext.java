@@ -19,12 +19,14 @@ package org.eclipse.aether.internal.test.util;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.collection.DependencyCollectionContext;
 import org.eclipse.aether.graph.Dependency;
+import org.eclipse.aether.graph.DependencyOverride;
 
 /**
  */
@@ -40,13 +42,23 @@ final class TestDependencyCollectionContext
 
     private final List<Dependency> managedDependencies;
 
+    private final List<DependencyOverride> dependencyOverrides;
+
     TestDependencyCollectionContext( RepositorySystemSession session, Artifact artifact, Dependency dependency,
-                                            List<Dependency> managedDependencies )
+                                     List<Dependency> managedDependencies )
+    {
+        this( session, artifact, dependency, managedDependencies, Collections.emptyList() );
+    }
+
+    TestDependencyCollectionContext( RepositorySystemSession session, Artifact artifact, Dependency dependency,
+                                     List<Dependency> managedDependencies,
+                                     List<DependencyOverride> dependencyOverrides )
     {
         this.session = session;
         this.artifact = ( dependency != null ) ? dependency.getArtifact() : artifact;
         this.dependency = dependency;
         this.managedDependencies = managedDependencies;
+        this.dependencyOverrides = dependencyOverrides;
     }
 
     public RepositorySystemSession getSession()
@@ -67,6 +79,11 @@ final class TestDependencyCollectionContext
     public List<Dependency> getManagedDependencies()
     {
         return managedDependencies;
+    }
+
+    public List<DependencyOverride> getDependencyOverrides()
+    {
+        return dependencyOverrides;
     }
 
     @Override

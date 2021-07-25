@@ -29,6 +29,7 @@ import static java.util.Objects.requireNonNull;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.graph.Dependency;
+import org.eclipse.aether.graph.DependencyOverride;
 import org.eclipse.aether.repository.ArtifactRepository;
 import org.eclipse.aether.repository.RemoteRepository;
 
@@ -56,6 +57,8 @@ public final class ArtifactDescriptorResult
 
     private List<Dependency> managedDependencies;
 
+    private List<DependencyOverride> dependencyOverrides;
+
     private List<RemoteRepository> repositories;
 
     private Map<String, Object> properties;
@@ -74,6 +77,7 @@ public final class ArtifactDescriptorResult
         aliases = Collections.emptyList();
         dependencies = Collections.emptyList();
         managedDependencies = Collections.emptyList();
+        dependencyOverrides = Collections.emptyList();
         repositories = Collections.emptyList();
         properties = Collections.emptyMap();
     }
@@ -372,6 +376,54 @@ public final class ArtifactDescriptorResult
                 managedDependencies = new ArrayList<>();
             }
             managedDependencies.add( dependency );
+        }
+        return this;
+    }
+
+    /**
+     * Gets the dependency override information.
+     *
+     * @return The dependency override information.
+     */
+    public List<DependencyOverride> getDependencyOverrides()
+    {
+        return dependencyOverrides;
+    }
+
+    /**
+     * Sets the dependency override information.
+     *
+     * @param dependencyOverrides The dependency override information, may be {@code null}.
+     * @return This result for chaining, never {@code null}.
+     */
+    public ArtifactDescriptorResult setDependencyOverrides( List<DependencyOverride> dependencyOverrides )
+    {
+        if ( dependencyOverrides == null )
+        {
+            this.dependencyOverrides = Collections.emptyList();
+        }
+        else
+        {
+            this.dependencyOverrides = dependencyOverrides;
+        }
+        return this;
+    }
+
+    /**
+     * Adds the specified managed dependency.
+     *
+     * @param override The managed dependency to add, may be {@code null}.
+     * @return This result for chaining, never {@code null}.
+     */
+    public ArtifactDescriptorResult addDependencyOverride( DependencyOverride override )
+    {
+        if ( override != null )
+        {
+            if ( dependencyOverrides.isEmpty() )
+            {
+                dependencyOverrides = new ArrayList<>();
+            }
+            dependencyOverrides.add( override );
         }
         return this;
     }
